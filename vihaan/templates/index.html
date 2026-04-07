@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CityGuard AI — Smart Surveillance Dashboard</title>
+    <meta name="description" content="AI-powered real-time surveillance system for smart city safety and security.">
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- ============================================================ -->
+    <!-- Header                                                        -->
+    <!-- ============================================================ -->
+    <header id="app-header">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </div>
+                <h1>CityGuard <span class="accent">AI</span></h1>
+            </div>
+            <span class="tagline">Smart Surveillance System</span>
+        </div>
+        <div class="header-right">
+            <div class="status-badge" id="status-badge">
+                <span class="pulse"></span>
+                <span id="status-text">Connecting...</span>
+            </div>
+            <div class="stat-chip" id="fps-chip">
+                <span class="stat-label">FPS</span>
+                <span class="stat-value" id="fps-value">—</span>
+            </div>
+            <div class="stat-chip" id="objects-chip">
+                <span class="stat-label">Objects</span>
+                <span class="stat-value" id="objects-value">—</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ============================================================ -->
+    <!-- Main Dashboard                                                -->
+    <!-- ============================================================ -->
+    <main id="dashboard">
+
+        <!-- Video Feed -->
+        <section class="card video-card" id="video-section">
+            <div class="card-header">
+                <h2>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="23 7 16 12 23 17 23 7"/>
+                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                    </svg>
+                    Live Feed
+                </h2>
+                <span class="badge live-badge">● LIVE</span>
+            </div>
+            <div class="video-wrapper">
+                <img id="video-feed" src="/video_feed" alt="Live surveillance feed">
+                <div class="video-overlay" id="video-overlay">
+                    <div class="spinner"></div>
+                    <p>Initializing camera...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Panel -->
+        <aside class="right-panel">
+
+            <!-- Alerts Panel -->
+            <section class="card alerts-card" id="alerts-section">
+                <div class="card-header">
+                    <h2>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        Real-Time Alerts
+                    </h2>
+                    <span class="alert-count" id="alert-count">0</span>
+                </div>
+                <div class="alerts-list" id="alerts-list">
+                    <div class="empty-state">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <p>No active alerts</p>
+                        <span>System monitoring...</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Incident Log -->
+            <section class="card incidents-card" id="incidents-section">
+                <div class="card-header">
+                    <h2>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                        Incident Log
+                    </h2>
+                    <span class="incident-total" id="incident-total">0 events</span>
+                </div>
+                <div class="incidents-list" id="incidents-list">
+                    <div class="empty-state">
+                        <p>No incidents recorded</p>
+                    </div>
+                </div>
+            </section>
+
+        </aside>
+    </main>
+
+    <!-- ============================================================ -->
+    <!-- JavaScript: Polling & UI Updates                              -->
+    <!-- ============================================================ -->
+    <script>
+        const alertsList = document.getElementById('alerts-list');
+        const alertCount = document.getElementById('alert-count');
+        const incidentsList = document.getElementById('incidents-list');
+        const incidentTotal = document.getElementById('incident-total');
+        const fpsValue = document.getElementById('fps-value');
+        const objectsValue = document.getElementById('objects-value');
+        const statusBadge = document.getElementById('status-badge');
+        const statusText = document.getElementById('status-text');
+        const videoOverlay = document.getElementById('video-overlay');
+        const videoFeed = document.getElementById('video-feed');
+
+        // Hide video overlay once feed loads
+        videoFeed.addEventListener('load', () => {
+            videoOverlay.style.display = 'none';
+        });
+
+        // Severity config
+        const severityConfig = {
+            high:   { icon: '🔴', cls: 'severity-high',   label: 'HIGH' },
+            medium: { icon: '🟠', cls: 'severity-medium', label: 'MED' },
+            low:    { icon: '🟡', cls: 'severity-low',    label: 'LOW' },
+        };
+
+        /**
+         * Poll /alerts endpoint for real-time alert data.
+         */
+        async function fetchAlerts() {
+            try {
+                const res = await fetch('/alerts');
+                const data = await res.json();
+                const alerts = data.alerts || [];
+                const status = data.status || {};
+
+                // Update status
+                fpsValue.textContent = status.fps || '—';
+                objectsValue.textContent = status.objects ?? '—';
+
+                if (status.running) {
+                    statusBadge.classList.add('active');
+                    statusText.textContent = 'System Active';
+                } else {
+                    statusBadge.classList.remove('active');
+                    statusText.textContent = 'Connecting...';
+                }
+
+                // Update alert count
+                alertCount.textContent = alerts.length;
+                alertCount.classList.toggle('has-alerts', alerts.length > 0);
+
+                // Render alerts
+                if (alerts.length === 0) {
+                    alertsList.innerHTML = `
+                        <div class="empty-state">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                            <p>No active alerts</p>
+                            <span>System monitoring...</span>
+                        </div>`;
+                } else {
+                    alertsList.innerHTML = alerts.map(a => {
+                        const cfg = severityConfig[a.severity] || severityConfig.low;
+                        return `
+                            <div class="alert-item ${cfg.cls} fade-in">
+                                <div class="alert-icon">${cfg.icon}</div>
+                                <div class="alert-body">
+                                    <div class="alert-header">
+                                        <strong>${a.type}</strong>
+                                        <span class="severity-tag ${cfg.cls}">${cfg.label}</span>
+                                    </div>
+                                    <p>${a.message}</p>
+                                    <time>${a.timestamp}</time>
+                                </div>
+                            </div>`;
+                    }).join('');
+                }
+            } catch (err) {
+                console.error('Alert fetch error:', err);
+            }
+        }
+
+        /**
+         * Poll /incidents endpoint for incident log.
+         */
+        async function fetchIncidents() {
+            try {
+                const res = await fetch('/incidents');
+                const data = await res.json();
+                const incidents = data.incidents || [];
+                const total = data.total || 0;
+
+                incidentTotal.textContent = `${total} event${total !== 1 ? 's' : ''}`;
+
+                if (incidents.length === 0) {
+                    incidentsList.innerHTML = `<div class="empty-state"><p>No incidents recorded</p></div>`;
+                } else {
+                    incidentsList.innerHTML = incidents.map(inc => {
+                        const cfg = severityConfig[inc.severity] || severityConfig.low;
+                        return `
+                            <div class="incident-item">
+                                <span class="incident-id">#${inc.id}</span>
+                                <span class="incident-dot ${cfg.cls}"></span>
+                                <span class="incident-type">${inc.type}</span>
+                                <span class="incident-time">${inc.timestamp}</span>
+                            </div>`;
+                    }).join('');
+                }
+            } catch (err) {
+                console.error('Incident fetch error:', err);
+            }
+        }
+
+        // Start polling
+        setInterval(fetchAlerts, 1000);
+        setInterval(fetchIncidents, 3000);
+        fetchAlerts();
+        fetchIncidents();
+    </script>
+
+</body>
+</html>
